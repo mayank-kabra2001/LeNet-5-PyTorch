@@ -13,14 +13,14 @@ import torch.nn.functional
 import torchvision.datasets   
 import torchvision.transforms     
 
-from torch import np   # this is torch's wrapper for numpy 
-import matplotlib
-matplotlib.use('Agg')       
-get_ipython().magic('matplotlib inline')
-from matplotlib import pyplot    
-from matplotlib.pyplot import subplot     
+import numpy as np   # this is torch's wrapper for numpy 
+#import matplotlib
+#matplotlib.use('Agg')       
+#get_ipython().magic('matplotlib inline')
+#from matplotlib import pyplot    
+#from matplotlib.pyplot import subplot     
 from sklearn.metrics import accuracy_score
-
+import time 
 
 # In[2]:
 
@@ -36,7 +36,7 @@ from sklearn.metrics import accuracy_score
 # [Refer 'ToTensor' class] http://pytorch.org/docs/0.2.0/_modules/torchvision/transforms.html
 
 transformImg = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), 
-                                               torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+                                               torchvision.transforms.Normalize((0.5,), (0.5,))])
 train = torchvision.datasets.MNIST(root='./data', train=True, download=True, transform=transformImg)
 valid = torchvision.datasets.MNIST(root='./data', train=True, download=True, transform=transformImg)
 test = torchvision.datasets.MNIST(root='./data', train=False, download=True, transform=transformImg)  
@@ -56,10 +56,10 @@ fig1 = train.train_data[0].numpy()
 fig2 = train.train_data[2500].numpy()
 fig3 = train.train_data[25000].numpy()  
 fig4 = train.train_data[59999].numpy()
-subplot(2,2,1), pyplot.imshow(fig1)  
-subplot(2,2,2), pyplot.imshow(fig2) 
-subplot(2,2,3), pyplot.imshow(fig3)
-subplot(2,2,4), pyplot.imshow(fig4)
+#subplot(2,2,1), pyplot.imshow(fig1)  
+#subplot(2,2,2), pyplot.imshow(fig2) 
+#subplot(2,2,3), pyplot.imshow(fig3)
+#subplot(2,2,4), pyplot.imshow(fig4)
 
 
 # In[4]:
@@ -71,9 +71,9 @@ valid_set = torch.utils.data.sampler.SubsetRandomSampler(valid_idx)
 # Load training and validation data based on above samples
 # Size of an individual batch during training and validation is 30
 # Both training and validation datasets are shuffled at every epoch by 'SubsetRandomSampler()'. Test set is not shuffled.
-train_loader = torch.utils.data.DataLoader(train, batch_size=30, sampler=train_set, num_workers=4)  
-valid_loader = torch.utils.data.DataLoader(train, batch_size=30, sampler=valid_set, num_workers=4)    
-test_loader = torch.utils.data.DataLoader(test, num_workers=4)       
+train_loader = torch.utils.data.DataLoader(train, batch_size=30, sampler=train_set, num_workers=0)  
+valid_loader = torch.utils.data.DataLoader(train, batch_size=30, sampler=valid_set, num_workers=0)    
+test_loader = torch.utils.data.DataLoader(test, num_workers=0)       
 
 
 # In[5]:
@@ -98,23 +98,45 @@ class LeNet5(torch.nn.Module):
         
     def forward(self, x):
         # convolve, then perform ReLU non-linearity
-        x = torch.nn.functional.relu(self.conv1(x))  
+        start = time.time() 
+        x = torch.nn.functional.relu(self.conv1(x)) 
         # max-pooling with 2x2 grid 
         x = self.max_pool_1(x) 
+        end = time.time()
+        print("elapsed time for layer 1 : ", end - start)
+
         # convolve, then perform ReLU non-linearity
+        start = time.time()
         x = torch.nn.functional.relu(self.conv2(x))
         # max-pooling with 2x2 grid
         x = self.max_pool_2(x)
+        end = time.time()
+        print("elapsed time for layer 2 : ", end - start)
+
         # first flatten 'max_pool_2_out' to contain 16*5*5 columns
         # read through https://stackoverflow.com/a/42482819/7551231
         x = x.view(-1, 16*5*5)
+        
+        start = time.time()
         # FC-1, then perform ReLU non-linearity
         x = torch.nn.functional.relu(self.fc1(x))
+        end = time.time()
+        print("elapsed time for layer 3 : ", end - start)
+
         # FC-2, then perform ReLU non-linearity
-        x = torch.nn.functional.relu(self.fc2(x))
-        # FC-3
-        x = self.fc3(x)
         
+        start = time.time()
+        x = torch.nn.functional.relu(self.fc2(x))
+        end = time.time()
+        print("elapsed time for layer 4 : ", end - start)
+
+        # FC-3
+
+        start = time.time()
+        x = self.fc3(x)
+        end = time.time()
+        print("elapsed time for layer 5 : ", end - start)
+
         return x
      
 net = LeNet5()     
@@ -155,7 +177,7 @@ for epoch in range(numEpochs):
         loss.backward()   
         optimization.step()     
         # calculating loss 
-        epoch_training_loss += loss.data[0]
+        epoch_training_loss += loss.data
         num_batches += 1
         
     print("epoch: ", epoch, ", loss: ", epoch_training_loss/num_batches)            
@@ -196,19 +218,20 @@ for epoch in range(numEpochs):
 epochs = list(range(numEpochs))
 
 # plotting training and validation accuracies
-fig1 = pyplot.figure()
-pyplot.plot(epochs, training_accuracy, 'r')
-pyplot.plot(epochs, validation_accuracy, 'g')
-pyplot.xlabel("Epochs")
-pyplot.ylabel("Accuracy") 
-pyplot.show(fig1)
+#fig1 = pyplot.figure()
+#pyplot.plot(epochs, training_accuracy, 'r')
+#pyplot.plot(epochs, validation_accuracy, 'g')
+#pyplot.xlabel("Epochs")
+#pyplot.ylabel("Accuracy") 
+#pyplot.show(fig1)
 
 
 # In[9]:
 
 # test the model on test dataset
 correct = 0
-total = 0
+total = 0 
+print("started testing")
 for test_data in test_loader:
     total += 1
     inputs, actual_val = test_data 
