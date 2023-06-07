@@ -36,9 +36,9 @@ import time
 # [Refer 'ToTensor' class] http://pytorch.org/docs/0.2.0/_modules/torchvision/transforms.html
 
 transformImg = torchvision.transforms.Compose([torchvision.transforms.Resize((224,224)) , torchvision.transforms.ToTensor()])
-train = torchvision.datasets.MNIST(root='./data', train=True, download=True, transform=transformImg)
-valid = torchvision.datasets.MNIST(root='./data', train=True, download=True, transform=transformImg)
-test = torchvision.datasets.MNIST(root='./data', train=False, download=True, transform=transformImg)  
+train = torchvision.datasets.CIFAR100(root='./data', train=True, download=True, transform=transformImg)
+valid = torchvision.datasets.CIFAR100(root='./data', train=True, download=True, transform=transformImg)
+test = torchvision.datasets.CIFAR100(root='./data', train=False, download=True, transform=transformImg)  
 
 # create training and validation set indexes (80-20 split)
 idx = list(range(len(train)))
