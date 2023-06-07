@@ -36,9 +36,9 @@ import time
 # [Refer 'ToTensor' class] http://pytorch.org/docs/0.2.0/_modules/torchvision/transforms.html
 
 transformImg = torchvision.transforms.Compose([torchvision.transforms.Resize((224,224)) , torchvision.transforms.ToTensor()])
-train = torchvision.datasets.MNIST(root='./data', train=True, download=True, transform=transformImg)
-valid = torchvision.datasets.MNIST(root='./data', train=True, download=True, transform=transformImg)
-test = torchvision.datasets.MNIST(root='./data', train=False, download=True, transform=transformImg)  
+train = torchvision.datasets.CIFAR100(root='./data', train=True, download=True, transform=transformImg)
+valid = torchvision.datasets.CIFAR100(root='./data', train=True, download=True, transform=transformImg)
+test = torchvision.datasets.CIFAR100(root='./data', train=False, download=True, transform=transformImg)  
 
 # create training and validation set indexes (80-20 split)
 idx = list(range(len(train)))
@@ -86,21 +86,25 @@ class LeNet5(torch.nn.Module):
         self.conv1 = torch.nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3, stride=2,  bias=True)
         self.conv2 = torch.nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3, stride=1, bias=True, groups=32)
 
+        # 112x112
         self.conv3 = torch.nn.Conv2d(in_channels=32, out_channels=64, kernel_size=1, stride=1,  bias=True)
         self.conv4 = torch.nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=2, bias=True, groups=64)
 
+        #56x56
         self.conv5 = torch.nn.Conv2d(in_channels=64, out_channels=128, kernel_size=1, stride=1,  bias=True)
         self.conv6 = torch.nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, stride=1, bias=True, groups=128)
 
         self.conv7 = torch.nn.Conv2d(in_channels=128, out_channels=128, kernel_size=1, stride=1,  bias=True)
         self.conv8 = torch.nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, stride=2, bias=True, groups=128)
 
+        #28x28
         self.conv9 = torch.nn.Conv2d(in_channels=128, out_channels=256, kernel_size=1, stride=1,  bias=True)
         self.conv10 = torch.nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, stride=1, bias=True, groups=256)
 
         self.conv11 = torch.nn.Conv2d(in_channels=256, out_channels=256, kernel_size=1, stride=1,  bias=True)
         self.conv12 = torch.nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, stride=2, bias=True, groups=256)
 
+        #14x14
         self.conv13 = torch.nn.Conv2d(in_channels=256, out_channels=512, kernel_size=1, stride=1,  bias=True)
 
         #1
@@ -280,10 +284,10 @@ class LeNet5(torch.nn.Module):
         end = time.time()
         print("elapsed time for layer 29 : ", end - start)
 
-        start = time.time() 
-        x = torch.nn.functional.Softmax(x) 
-        end = time.time()
-        print("elapsed time for layer 30 : ", end - start)
+        # start = time.time() 
+        # x = torch.nn.functional.Softmax(x) 
+        # end = time.time()
+        # print("elapsed time for layer 30 : ", end - start)
 
 
         # # convolve, then perform ReLU non-linearity
@@ -321,6 +325,7 @@ class LeNet5(torch.nn.Module):
         return x
      
 net = LeNet5()     
+net.cuda()
 
 
 # In[6]:
@@ -348,7 +353,7 @@ for epoch in range(numEpochs):
         # split training data into inputs and labels
         inputs, labels = training_batch                              # 'training_batch' is a list               
         # wrap data in 'Variable'
-        inputs, labels = torch.autograd.Variable(inputs.cuda()), torch.autograd.Variable(labels.cuda())        
+        inputs, labels = torch.autograd.Variable(inputs), torch.autograd.Variable(labels)        
         # Make gradients zero for parameters 'W', 'b'
         optimization.zero_grad()         
         # forward, backward pass with parameter update
@@ -369,9 +374,9 @@ for epoch in range(numEpochs):
         num_batches += 1
         inputs, actual_val = training_batch
         # perform classification
-        predicted_val = net(torch.autograd.Variable(inputs.cuda()))
+        predicted_val = net(torch.autograd.Variable(inputs))
         # convert 'predicted_val' tensor to numpy array and use 'numpy.argmax()' function    
-        predicted_val = predicted_val.cpu().data.numpy()    # convert cuda() type to cpu(), then convert it to numpy
+        predicted_val = predicted_val.data.numpy()    # convert cuda() type to cpu(), then convert it to numpy
         predicted_val = np.argmax(predicted_val, axis = 1)  # retrieved max_values along every row    
         # accuracy   
         accuracy += accuracy_score(actual_val.numpy(), predicted_val)
@@ -384,9 +389,9 @@ for epoch in range(numEpochs):
         num_batches += 1
         inputs, actual_val = validation_batch
         # perform classification
-        predicted_val = net(torch.autograd.Variable(inputs.cuda()))    
+        predicted_val = net(torch.autograd.Variable(inputs))    
         # convert 'predicted_val' tensor to numpy array and use 'numpy.argmax()' function    
-        predicted_val = predicted_val.cpu().data.numpy()    # convert cuda() type to cpu(), then convert it to numpy
+        predicted_val = predicted_val.data.numpy()    # convert cuda() type to cpu(), then convert it to numpy
         predicted_val = np.argmax(predicted_val, axis = 1)  # retrieved max_values along every row    
         # accuracy        
         accuracy += accuracy_score(actual_val.numpy(), predicted_val)
@@ -416,9 +421,9 @@ for test_data in test_loader:
     total += 1
     inputs, actual_val = test_data 
     # perform classification
-    predicted_val = net(torch.autograd.Variable(inputs.cuda()))   
+    predicted_val = net(torch.autograd.Variable(inputs))   
     # convert 'predicted_val' GPU tensor to CPU tensor and extract the column with max_score
-    predicted_val = predicted_val.cpu().data
+    predicted_val = predicted_val.data
     max_score, idx = torch.max(predicted_val, 1)
     # compare it with actual value and estimate accuracy
     correct += (idx == actual_val).sum()

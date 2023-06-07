@@ -1,26 +1,29 @@
 
+
 # coding: utf-8
 
-# ### Implementing LeNet-5 Architecture On MNIST Dataset (CPU Implementation)
+# ### Implementing LeNet-5 Architecture On MNIST Dataset (GPU Implementation)
 
 # In[1]:
 
-
 import torch
+#torch.multiprocessing.set_start_method("spawn")        # https://github.com/pytorch/pytorch/issues/3491#event-1326332533
 import torch.nn   
-import torch.optim
+import torch.optim 
 import torch.nn.functional 
-import torchvision.datasets  
-import torchvision.transforms    
+import torchvision.datasets   
+import torchvision.transforms     
 
-from torch import np   # this is torch's wrapper for numpy
-from matplotlib import pyplot 
-from matplotlib.pyplot import subplot     
+import numpy as np   # this is torch's wrapper for numpy 
+#import matplotlib
+#matplotlib.use('Agg')       
+#get_ipython().magic('matplotlib inline')
+#from matplotlib import pyplot    
+#from matplotlib.pyplot import subplot     
 from sklearn.metrics import accuracy_score
-
+import time 
 
 # In[2]:
-
 
 # ---------- MNIST data from torch ----------     
 # First download the dataset and set aside training and test data. Then perform transformation.  
@@ -34,7 +37,7 @@ from sklearn.metrics import accuracy_score
 # [Refer 'ToTensor' class] http://pytorch.org/docs/0.2.0/_modules/torchvision/transforms.html
 
 transformImg = torchvision.transforms.Compose([torchvision.transforms.ToTensor(), 
-                                               torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))])
+                                               torchvision.transforms.Normalize((0.5,), (0.5,))])
 train = torchvision.datasets.MNIST(root='./data', train=True, download=True, transform=transformImg)
 valid = torchvision.datasets.MNIST(root='./data', train=True, download=True, transform=transformImg)
 test = torchvision.datasets.MNIST(root='./data', train=False, download=True, transform=transformImg)  
@@ -43,37 +46,24 @@ test = torchvision.datasets.MNIST(root='./data', train=False, download=True, tra
 idx = list(range(len(train)))
 np.random.seed(1009)
 np.random.shuffle(idx)          
-train_idx = idx[ : int(0.8 * len(idx))]        
-valid_idx = idx[int(0.8 * len(idx)) : ] 
+train_idx = idx[ : int(0.8 * len(idx))]       
+valid_idx = idx[int(0.8 * len(idx)) : ]
 
 
-# In[4]:
-
-
-# dataset dimensions      
-print("Training data dimensions: ", train.train_data.shape)   
-print("Test data dimensions: ", test.test_data.shape)    
-  
-# how an image looks in matrix format
-print("\nAn image in matrix format looks as follows: ", train.train_data[0])
-
-
-# In[5]:
-
+# In[3]:
 
 # sample images
 fig1 = train.train_data[0].numpy()  
 fig2 = train.train_data[2500].numpy()
 fig3 = train.train_data[25000].numpy()  
-fig4 = train.train_data[59999].numpy() 
-subplot(2,2,1), pyplot.imshow(fig1)  
-subplot(2,2,2), pyplot.imshow(fig2) 
-subplot(2,2,3), pyplot.imshow(fig3) 
-subplot(2,2,4), pyplot.imshow(fig4)
+fig4 = train.train_data[59999].numpy()
+#subplot(2,2,1), pyplot.imshow(fig1)  
+#subplot(2,2,2), pyplot.imshow(fig2) 
+#subplot(2,2,3), pyplot.imshow(fig3)
+#subplot(2,2,4), pyplot.imshow(fig4)
 
 
-# In[9]:
-
+# In[4]:
 
 # generate training and validation set samples
 train_set = torch.utils.data.sampler.SubsetRandomSampler(train_idx)    
@@ -81,20 +71,18 @@ valid_set = torch.utils.data.sampler.SubsetRandomSampler(valid_idx)
 
 # Load training and validation data based on above samples
 # Size of an individual batch during training and validation is 30
-# Note that 'SubsetRandomSampler()' function is responsible for providing random samples of data i.e.
-# at every epoch, a batch of 30 records is output and records in every batch are randomly sampled
-train_loader = torch.utils.data.DataLoader(train, batch_size=30, sampler=train_set, num_workers=4)  
-valid_loader = torch.utils.data.DataLoader(train, batch_size=30, sampler=valid_set, num_workers=4)    
-test_loader = torch.utils.data.DataLoader(test, num_workers=4)
+# Both training and validation datasets are shuffled at every epoch by 'SubsetRandomSampler()'. Test set is not shuffled.
+train_loader = torch.utils.data.DataLoader(train, batch_size=30, sampler=train_set, num_workers=0)  
+valid_loader = torch.utils.data.DataLoader(train, batch_size=30, sampler=valid_set, num_workers=0)    
+test_loader = torch.utils.data.DataLoader(test, num_workers=0)       
 
 
-# In[10]:
-
+# In[5]:
 
 # Defining the network (LeNet-5)  
-class LeNet5(torch.nn.Module):
+class LeNet5(torch.nn.Module):          
      
-    def __init__(self):   
+    def __init__(self):     
         super(LeNet5, self).__init__()
         # Convolution (In LeNet-5, 32x32 images are given as input. Hence padding of 2 is done below)
         self.conv1 = torch.nn.Conv2d(in_channels=1, out_channels=6, kernel_size=5, stride=1, padding=2, bias=True)
@@ -103,7 +91,7 @@ class LeNet5(torch.nn.Module):
         # Convolution
         self.conv2 = torch.nn.Conv2d(in_channels=6, out_channels=16, kernel_size=5, stride=1, padding=0, bias=True)
         # Max-pooling
-        self.max_pool_2 = torch.nn.MaxPool2d(kernel_size=2)
+        self.max_pool_2 = torch.nn.MaxPool2d(kernel_size=2) 
         # Fully connected layer
         self.fc1 = torch.nn.Linear(16*5*5, 120)   # convert matrix with 16*5*5 (= 400) features to a matrix of 120 features (columns)
         self.fc2 = torch.nn.Linear(120, 84)       # convert matrix with 120 features to a matrix of 84 features (columns)
@@ -111,44 +99,65 @@ class LeNet5(torch.nn.Module):
         
     def forward(self, x):
         # convolve, then perform ReLU non-linearity
-        x = torch.nn.functional.relu(self.conv1(x))  
-        # max-pooling with 2x2 grid
-        x = self.max_pool_1(x)
+        start = time.time() 
+        x = torch.nn.functional.relu(self.conv1(x)) 
+        # max-pooling with 2x2 grid 
+        x = self.max_pool_1(x) 
+        end = time.time()
+        print("elapsed time for layer 1 : ", end - start)
+
         # convolve, then perform ReLU non-linearity
+        start = time.time()
         x = torch.nn.functional.relu(self.conv2(x))
         # max-pooling with 2x2 grid
         x = self.max_pool_2(x)
+        end = time.time()
+        print("elapsed time for layer 2 : ", end - start)
+
         # first flatten 'max_pool_2_out' to contain 16*5*5 columns
         # read through https://stackoverflow.com/a/42482819/7551231
         x = x.view(-1, 16*5*5)
+        
+        start = time.time()
         # FC-1, then perform ReLU non-linearity
         x = torch.nn.functional.relu(self.fc1(x))
+        end = time.time()
+        print("elapsed time for layer 3 : ", end - start)
+
         # FC-2, then perform ReLU non-linearity
-        x = torch.nn.functional.relu(self.fc2(x))
-        # FC-3
-        x = self.fc3(x)
         
+        start = time.time()
+        x = torch.nn.functional.relu(self.fc2(x))
+        end = time.time()
+        print("elapsed time for layer 4 : ", end - start)
+
+        # FC-3
+
+        start = time.time()
+        x = self.fc3(x)
+        end = time.time()
+        print("elapsed time for layer 5 : ", end - start)
+
         return x
      
-net = LeNet5()
+net = LeNet5()     
+net.cuda()
 
 
-# In[11]:
+# In[6]:
+
+# set up loss function -- 'SVM Loss' a.k.a 'Cross-Entropy Loss'
+loss_func = torch.nn.CrossEntropyLoss()
+       
+# SGD used for optimization, momentum update used as parameter update  
+optimization = torch.optim.SGD(net.parameters(), lr = 0.001, momentum=0.9)
 
 
-# set up loss function -- 'SVM Loss' a.k.a ''Cross-Entropy Loss
-loss_func = torch.nn.CrossEntropyLoss()  
-   
-# SGD used for optimization, momentum update used as parameter update   
-optimization = torch.optim.SGD(net.parameters(), lr = 0.001, momentum=0.9) 
-
-
-# In[12]:
-
+# In[7]:
 
 # Let training begin!
-numEpochs = 10
-training_accuracy = []
+numEpochs = 20    
+training_accuracy = []     
 validation_accuracy = []
 
 for epoch in range(numEpochs):
@@ -167,13 +176,13 @@ for epoch in range(numEpochs):
         forward_output = net(inputs)
         loss = loss_func(forward_output, labels)
         loss.backward()   
-        optimization.step() 
-        # calculating loss
-        epoch_training_loss += loss.data[0]
+        optimization.step()     
+        # calculating loss 
+        epoch_training_loss += loss.data
         num_batches += 1
-    
+        
     print("epoch: ", epoch, ", loss: ", epoch_training_loss/num_batches)            
-    
+     
     # calculate training set accuracy
     accuracy = 0.0 
     num_batches = 0
@@ -181,15 +190,15 @@ for epoch in range(numEpochs):
         num_batches += 1
         inputs, actual_val = training_batch
         # perform classification
-        predicted_val = net(torch.autograd.Variable(inputs))    
+        predicted_val = net(torch.autograd.Variable(inputs))
         # convert 'predicted_val' tensor to numpy array and use 'numpy.argmax()' function    
-        predicted_val = predicted_val.data.numpy()
+        predicted_val = predicted_val.data.numpy()    # convert cuda() type to cpu(), then convert it to numpy
         predicted_val = np.argmax(predicted_val, axis = 1)  # retrieved max_values along every row    
-        # accuracy        
+        # accuracy   
         accuracy += accuracy_score(actual_val.numpy(), predicted_val)
     training_accuracy.append(accuracy/num_batches)   
-            
-    # calculate validation set accuracy
+
+    # calculate validation set accuracy 
     accuracy = 0.0 
     num_batches = 0
     for batch_num, validation_batch in enumerate(valid_loader):        # 'enumerate' is a super helpful function        
@@ -198,33 +207,32 @@ for epoch in range(numEpochs):
         # perform classification
         predicted_val = net(torch.autograd.Variable(inputs))    
         # convert 'predicted_val' tensor to numpy array and use 'numpy.argmax()' function    
-        predicted_val = predicted_val.data.numpy()
+        predicted_val = predicted_val.data.numpy()    # convert cuda() type to cpu(), then convert it to numpy
         predicted_val = np.argmax(predicted_val, axis = 1)  # retrieved max_values along every row    
         # accuracy        
-        accuracy += accuracy_score(actual_val.numpy(), predicted_val)  
-    validation_accuracy.append(accuracy/num_batches)      
+        accuracy += accuracy_score(actual_val.numpy(), predicted_val)
+    validation_accuracy.append(accuracy/num_batches)
 
 
-# In[13]:
-
+# In[8]:
 
 epochs = list(range(numEpochs))
 
 # plotting training and validation accuracies
-fig2 = pyplot.figure()
-pyplot.plot(epochs, training_accuracy, 'r')
-pyplot.plot(epochs, validation_accuracy, 'g')
-pyplot.xlabel("Epochs")
-pyplot.ylabel("Accuracy") 
-pyplot.show(fig2) 
+#fig1 = pyplot.figure()
+#pyplot.plot(epochs, training_accuracy, 'r')
+#pyplot.plot(epochs, validation_accuracy, 'g')
+#pyplot.xlabel("Epochs")
+#pyplot.ylabel("Accuracy") 
+#pyplot.show(fig1)
 
 
-# In[14]:
-
+# In[9]:
 
 # test the model on test dataset
 correct = 0
-total = 0
+total = 0 
+print("started testing")
 for test_data in test_loader:
     total += 1
     inputs, actual_val = test_data 

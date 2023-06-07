@@ -86,21 +86,25 @@ class LeNet5(torch.nn.Module):
         self.conv1 = torch.nn.Conv2d(in_channels=3, out_channels=32, kernel_size=3, stride=2,  bias=True)
         self.conv2 = torch.nn.Conv2d(in_channels=32, out_channels=32, kernel_size=3, stride=1, bias=True, groups=32)
 
+        # 112x112
         self.conv3 = torch.nn.Conv2d(in_channels=32, out_channels=64, kernel_size=1, stride=1,  bias=True)
         self.conv4 = torch.nn.Conv2d(in_channels=64, out_channels=64, kernel_size=3, stride=2, bias=True, groups=64)
 
+        #56x56
         self.conv5 = torch.nn.Conv2d(in_channels=64, out_channels=128, kernel_size=1, stride=1,  bias=True)
         self.conv6 = torch.nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, stride=1, bias=True, groups=128)
 
         self.conv7 = torch.nn.Conv2d(in_channels=128, out_channels=128, kernel_size=1, stride=1,  bias=True)
         self.conv8 = torch.nn.Conv2d(in_channels=128, out_channels=128, kernel_size=3, stride=2, bias=True, groups=128)
 
+        #28x28
         self.conv9 = torch.nn.Conv2d(in_channels=128, out_channels=256, kernel_size=1, stride=1,  bias=True)
         self.conv10 = torch.nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, stride=1, bias=True, groups=256)
 
         self.conv11 = torch.nn.Conv2d(in_channels=256, out_channels=256, kernel_size=1, stride=1,  bias=True)
         self.conv12 = torch.nn.Conv2d(in_channels=256, out_channels=256, kernel_size=3, stride=2, bias=True, groups=256)
 
+        #14x14
         self.conv13 = torch.nn.Conv2d(in_channels=256, out_channels=512, kernel_size=1, stride=1,  bias=True)
 
         #1
@@ -280,10 +284,10 @@ class LeNet5(torch.nn.Module):
         end = time.time()
         print("elapsed time for layer 29 : ", end - start)
 
-        start = time.time() 
-        x = torch.nn.functional.Softmax(x) 
-        end = time.time()
-        print("elapsed time for layer 30 : ", end - start)
+        # start = time.time() 
+        # x = torch.nn.functional.Softmax(x) 
+        # end = time.time()
+        # print("elapsed time for layer 30 : ", end - start)
 
 
         # # convolve, then perform ReLU non-linearity
