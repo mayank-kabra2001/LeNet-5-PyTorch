@@ -6,7 +6,7 @@
 # In[1]:
 
 import torch
-torch.multiprocessing.set_start_method("spawn")        # https://github.com/pytorch/pytorch/issues/3491#event-1326332533
+#torch.multiprocessing.set_start_method("spawn")        # https://github.com/pytorch/pytorch/issues/3491#event-1326332533
 import torch.nn   
 import torch.optim 
 import torch.nn.functional 
