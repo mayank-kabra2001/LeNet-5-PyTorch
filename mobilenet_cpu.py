@@ -51,10 +51,10 @@ valid_idx = idx[int(0.8 * len(idx)) : ]
 # In[3]:
 
 # sample images
-fig1 = train.train_data[0].numpy()  
-fig2 = train.train_data[2500].numpy()
-fig3 = train.train_data[25000].numpy()  
-fig4 = train.train_data[59999].numpy()
+#fig1 = train.train_data[0].numpy()  
+#fig2 = train.train_data[2500].numpy()
+#fig3 = train.train_data[25000].numpy()  
+#fig4 = train.train_data[59999].numpy()
 #subplot(2,2,1), pyplot.imshow(fig1)  
 #subplot(2,2,2), pyplot.imshow(fig2) 
 #subplot(2,2,3), pyplot.imshow(fig3)
@@ -125,7 +125,7 @@ class LeNet5(torch.nn.Module):
         self.conv22 = torch.nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, stride=1,  bias=True, groups=512)
         self.conv23 = torch.nn.Conv2d(in_channels=512, out_channels=512, kernel_size=1, stride=1, bias=True)
 
-        self.conv24 = torch.nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, stride=2,  bias=True, groups=512)
+        self.conv24 = torch.nn.Conv2d(in_channels=512, out_channels=512, kernel_size=3, stride=2, padding=6,  bias=True, groups=512)
         self.conv25 = torch.nn.Conv2d(in_channels=512, out_channels=1024, kernel_size=1, stride=1, bias=True)   
 
         self.conv26 = torch.nn.Conv2d(in_channels=1024, out_channels=1024, kernel_size=3, stride=1,  bias=True, groups=1024)
@@ -325,7 +325,7 @@ class LeNet5(torch.nn.Module):
         return x
      
 net = LeNet5()     
-net.cuda()
+#net.cuda()
 
 
 # In[6]:
